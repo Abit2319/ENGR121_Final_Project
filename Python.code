@@ -1,0 +1,130 @@
+import random
+class Cards:
+    def __init__(self, color, value):
+        self.color = color
+        self.value = value
+
+    def __repr__(self):
+        return f"{self.color} {self.value}"
+
+
+class Deck:
+    colors = ["Red", "Green", "Blue", "Yellow"]
+    values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "Draw Two", "Skip", "Reverse"]
+    special_cards = ["Wild", "Draw Four"]
+
+    def __init__(self):
+        self.cards = [Cards(color, value) for color in self.colors for value in self.values] * 2 + [Cards(None, wild) for wild in self.special_cards] * 2
+        random.shuffle(self.cards)
+
+    def draw_card(self):
+        return self.cards.pop() if self.cards else None
+
+
+
+class Starting_the_Game:
+    def __init__(self):
+        self.num_players = 0
+        self.player_names = []
+        self.starting_player = None
+
+    def whos_first(self):
+        while True:
+                self.num_players = int(input("Enter the total number of players (2–5): "))
+                if 2 <= self.num_players <= 5:
+                    break
+                else:
+                    print("Please enter a number between 2 and 5.")
+
+
+        self.player_names = []
+        for x in range(1, self.num_players + 1):
+            name = input(f"Enter the name of Player {x}: ")
+            self.player_names.append(name)
+
+        self.starting_player = random.randint(0, self.num_players - 1)
+        print(f"{self.player_names[self.starting_player]} will start first!")
+        return self.player_names
+
+
+class Player:
+    def __init__(self, name):
+        self.name = name
+        self.hand = []
+
+    def draw(self, deck, num=1):
+        for x in range(num):
+            card = deck.draw_card()
+            if card:
+                self.hand.append(card)
+
+    def play_card(self, card):
+        self.hand.remove(card)
+        return card
+
+    def winner(self):
+        return len(self.hand) == 0
+
+
+class Game:
+    def __init__(self):
+        self.deck = Deck()
+        self.starting_game = Starting_the_Game()
+        self.player_names = self.starting_game.whos_first()
+        self.players = [Player(name) for name in self.player_names]
+        self.discard_pile = []
+        self.direction = 1
+        self.current_player_index = self.starting_game.starting_player
+
+        for player in self.players:
+            player.draw(self.deck, 7)
+
+        self.discard_pile.append(self.deck.draw_card())
+
+    def next_player(self):
+        self.current_player_index = (self.current_player_index + self.direction) % len(self.players)
+
+    def play_turn(self):
+        player = self.players[self.current_player_index]
+        top_card = self.discard_pile[-1]
+        print(f"Top Card: {top_card}")
+        print(f"{player.name}'s Hand: {player.hand}")
+
+        playable_cards = [card for card in player.hand if card.color == top_card.color or card.value == top_card.value]
+
+        if playable_cards:
+            chosen_card = playable_cards[0]
+            self.discard_pile.append(player.play_card(chosen_card))
+            print(f"{player.name} played {chosen_card}")
+
+            if chosen_card.value == "Draw Two":
+                self.next_player()
+                self.players[self.current_player_index].draw(self.deck, 2)
+            elif chosen_card.value == "Reverse":
+                self.direction *= -1
+            elif chosen_card.value == "Skip":
+                self.next_player()
+            elif chosen_card.value == "Wild Draw Four":
+                self.players[self.current_player_index].draw(self.deck, 4)
+            elif chosen_card.value == "Wild":
+                chosen_card.color = input("Choose a color (Red, Green, Blue, Yellow): ")
+
+        else:
+            print(f"{player.name} has no playable cards; they need to draw one.")
+            player.draw(self.deck)
+
+        if player.winner():
+            print(f"{player.name} won the game!")
+            return True
+
+        self.next_player()
+        return False
+
+
+def play_the_game():
+    game = Game()
+    game_over = False
+
+    while not game_over:
+        game_over = game.play_turn()
+play_the_game()
